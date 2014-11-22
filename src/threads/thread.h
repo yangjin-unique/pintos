@@ -98,6 +98,9 @@ struct thread
     uint32_t *pagedir;                  /* Page directory. */
 #endif
 
+#if 1 /* pj1 */
+	int64_t wake_up_ticks; /* thread wake up at ticks */
+#endif
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
   };
@@ -138,4 +141,7 @@ void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
 
+#if 1 /* pj1 */
+bool cmp_thread_wake_ticks(struct list_elem *a, struct list_elem *b, void *aux UNUSED);
+#endif
 #endif /* threads/thread.h */

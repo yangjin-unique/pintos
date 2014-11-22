@@ -314,6 +314,25 @@ thread_yield (void)
   intr_set_level (old_level);
 }
 
+#if 1 /* pj1 */
+/* @return:
+ *		1: a < b
+ *		0: othrewise
+ */
+bool
+cmp_thread_wake_ticks(struct list_elem *a, struct list_elem *b, void *aux UNUSED)
+{
+	struct thread *ta = list_entry(a, struct thread, elem);
+	struct thread *tb = list_entry(b, struct thread, elem);
+
+	ASSERT(a != NULL && b != NULL);
+	if (ta->wake_up_ticks < tb->wake_up_ticks)
+		return 1;
+	else
+		return 0;
+}
+#endif
+
 /* Invoke function 'func' on all threads, passing along 'aux'.
    This function must be called with interrupts off. */
 void

@@ -7,6 +7,7 @@
 #include "threads/interrupt.h"
 #include "threads/synch.h"
 #include "threads/thread.h"
+#include <list.h>
   
 /* See [8254] for hardware details of the 8254 timer chip. */
 
@@ -19,6 +20,11 @@
 
 /* Number of timer ticks since OS booted. */
 static int64_t ticks;
+
+#if 1 /* pj1 */
+static struct list sleep_list;
+static struct lock sleep_list_lock;
+#endif
 
 /* Number of loops per timer tick.
    Initialized by timer_calibrate(). */
@@ -37,6 +43,10 @@ timer_init (void)
 {
   pit_configure_channel (0, 2, TIMER_FREQ);
   intr_register_ext (0x20, timer_interrupt, "8254 Timer");
+#if 1 /* pj1 */
+  list_init(&sleep_list);
+  lock_init(&sleep_list_lock);
+#endif
 }
 
 /* Calibrates loops_per_tick, used to implement brief delays. */
@@ -92,8 +102,27 @@ timer_sleep (int64_t ticks)
   int64_t start = timer_ticks ();
 
   ASSERT (intr_get_level () == INTR_ON);
+#if 0 /* pj1 */
   while (timer_elapsed (start) < ticks) 
     thread_yield ();
+#endif
+
+#if 1 /* pj1 */
+  if (ticks <= 0)
+	  return;
+  /* add current thread to sleep thread list in order, 
+   * and set its wake up time. Then schedule a new thread.
+   */
+  struct thread *cur = thread_current();
+  enum intr_level old_level;
+  lock_acquire(&sleep_list_lock);
+  old_level = intr_disable();
+  cur->wake_up_ticks = start + ticks; 
+  list_insert_ordered(&sleep_list, &cur->elem, (list_less_func *)cmp_thread_wake_ticks, NULL);
+  lock_release(&sleep_list_lock);
+  thread_block();
+  intr_set_level(old_level);
+#endif
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be
@@ -172,6 +201,17 @@ timer_interrupt (struct intr_frame *args UNUSED)
 {
   ticks++;
   thread_tick ();
+#if 1 /* pj1 */
+  /* need to wake up sleeping threads (i.e. add thread to ready list) 
+   * whose wake-up time is reach,
+   */
+  while (!list_empty(&sleep_list)) {
+		if (((struct thread *)list_entry(list_front(&sleep_list), struct thread, elem))->wake_up_ticks <= ticks)
+			thread_unblock((struct thread *)list_entry(list_pop_front(&sleep_list), struct thread, elem));
+		else
+			break;
+  }
+#endif
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer
