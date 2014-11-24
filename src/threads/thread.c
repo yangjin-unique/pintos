@@ -285,10 +285,6 @@ thread_unblock (struct thread *t)
 #if 1 /* pj2 */
   list_insert_ordered(&ready_list, &t->elem, (list_less_func *)cmp_thread_prio, NULL);
   t->status = THREAD_READY;
-  if (t->priority > cur->priority) {
-	  //todo: need reschedule here...
-      //thread_yield();
-  }
 #endif
   intr_set_level (old_level);
 }
