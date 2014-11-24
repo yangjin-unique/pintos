@@ -133,7 +133,8 @@ thread_tick (void)
 #endif
   else
     kernel_ticks++;
-  ++thread_ticks;
+
+  ++thread_ticks; // pj2
 #if 0 /* pj2 */
   /* Enforce preemption. */
   if (++thread_ticks >= TIME_SLICE)
@@ -142,7 +143,7 @@ thread_tick (void)
 }
 
 #if 1 /* pj2 */
-/* called by timer interrupt handler, runs in a
+/* only called by timer interrupt handler, runs in a
  * external interrupt context
  * */
 void
@@ -152,7 +153,8 @@ thread_preemption(void)
 	struct thread *to_run = NULL;
 	
 	if (!list_empty(&ready_list)) 
-		to_run = list_entry(list_pop_back(&ready_list), struct thread, elem);
+		to_run = list_entry(list_back(&ready_list), struct thread, elem);
+
 	if ( (to_run != NULL && to_run->priority > cur->priority)
 			|| thread_ticks >= TIME_SLICE)
 		intr_yield_on_return();
@@ -220,7 +222,10 @@ thread_create (const char *name, int priority,
 
   /* Add to run queue. */
   thread_unblock (t);
-
+#if 1 /* pj2 */
+  if (priority > thread_current()->priority)
+      thread_yield();
+#endif
   return tid;
 }
 
@@ -282,7 +287,7 @@ thread_unblock (struct thread *t)
   t->status = THREAD_READY;
   if (t->priority > cur->priority) {
 	  //todo: need reschedule here...
-      //thread_block();
+      //thread_yield();
   }
 #endif
   intr_set_level (old_level);
@@ -403,7 +408,22 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority) 
 {
-  thread_current ()->priority = new_priority;
+  //thread_current ()->priority = new_priority;
+#if 1 /* pj2 */
+ 	struct thread *cur = thread_current();
+	struct thread *to_run = NULL;
+	
+    cur->priority = new_priority;
+	
+    if (!list_empty(&ready_list)) 
+		to_run = list_entry(list_back(&ready_list), struct thread, elem);
+    
+    /* if the new priority is less than the max priority of ready_list,
+     * then thread need yield cpu 
+     * */
+	if (to_run != NULL && to_run->priority > cur->priority)
+        thread_yield(); 
+#endif
 }
 
 /* Returns the current thread's priority. */

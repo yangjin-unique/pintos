@@ -1,0 +1,38 @@
+                    Project 1: timer sleep 
+1. Problem
+Reimplement thread sleep function insteat of "busy waits".
+
+
+2. Data Structures
+1) Added to struct thread (thread.h):
+--------------------------------
+        struct thread {
+            .....
+            int64_t wake_up_ticks;
+            .....
+        }
+-------------------------------
+wake_up_ticks is used to record the time that thread needs to wake up.
+
+2) Declare a new thread list (timer.c):
+        struct list sleep_list;
+        struct lock sleep_list_lock;
+
+
+3. Algorithm
+The basic idea is that when a thread calls timer_sleep(), it will be put into the
+ordered sleep list. On every timer interrupe handler, we check the thread in the sleep 
+list to see if it is time to wake up this thread.
+
+
+4. Synchronization
+Since the global sleep list may be access by multiple threads that call timer_sleep() 
+simultaneously, we need use lock sleep_list_lock to protect it.
+
+5. Rationale 
+One advantage of this design is that an ordered list is adopted, so it is efficient and 
+fast to choose the thread with least wake_up_ticks to run.
+When two sleeping threads have similar wake_up_ticks value, then a FIFO method is used. 
+
+
+
