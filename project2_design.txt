@@ -1,0 +1,39 @@
+                            Project 2: Priority-based Schedule 
+
+1. Problem
+Implement priority based schedule. The thread with higher priority is going to run 
+first (preemption allowed). When threads have similar priority, then a round-robin
+method is used to choose the next running thread.
+
+
+2. Data Structures
+None
+
+
+3. Algorithm
+Here we must understand in what kind of situations that thread re-schedule is needed. 
+The following situations: 
+1) timer interrupt handler. When the time slice of a thread is used up, 
+we need a schedule a new thread here. Note that the interrupe handler calls 
+thread_preemption() (which calls intr_yield_on_return) to schedule a new process.
+
+2) Thread changes its priority (increase or decrease). Thread can call 
+thread_set_priority to changes its priority. When a thread lowers its priority, 
+a new thread with higher priority in ready_list (if exists) should be scheduled to run.
+So thread_yield() is called in this case.
+
+3) Creat a new thread. When the new creatd thread has a higher priority than the running
+thread, we need switch to the new thread now. This case calls thread_yield().
+
+4) Thread wait on a lock. When a lock is currently held by another thread, the running 
+thread will be put into the wait list of the lock and call thread_block(), thread_block
+sets thread's status to blocked, and schedule.
+
+
+4. Synchronization
+Detail why synchronization is needed or not needed and how synchronization is 
+implemented.
+
+
+5. Rationale
+Critique your design

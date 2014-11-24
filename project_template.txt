@@ -1,0 +1,23 @@
+                            Project Name
+
+1. Problem
+Please describe what kind of probles that you want to solve.
+
+
+2. Data Structures
+Copy here the declaration of each new or changed 'struct' or 'struct' member,
+global or static variable, 'typedef', or enumeration. Identify the purpose of
+each in 25 word or less.
+
+
+3. Algorithm
+Briefly describe your implementation here.
+
+
+4. Synchronization
+Detail why synchronization is needed or not needed and how synchronization is 
+implemented.
+
+
+5. Rationale
+Critique your design

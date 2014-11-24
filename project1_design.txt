@@ -21,13 +21,19 @@ wake_up_ticks is used to record the time that thread needs to wake up.
 
 3. Algorithm
 The basic idea is that when a thread calls timer_sleep(), it will be put into the
-ordered sleep list. On every timer interrupe handler, we check the thread in the sleep 
+ordered sleep list. 
+Routine: timer_sleep() --> list_insert_ordered() --> thread_block();
+
+On every timer interrupe handler, we check the thread in the sleep 
 list to see if it is time to wake up this thread.
+Routine: timer_interrupt() --> thread_unblock(). thread_unblock will put the thread 
+back to ready_list.
 
 
 4. Synchronization
 Since the global sleep list may be access by multiple threads that call timer_sleep() 
 simultaneously, we need use lock sleep_list_lock to protect it.
+
 
 5. Rationale 
 One advantage of this design is that an ordered list is adopted, so it is efficient and 
