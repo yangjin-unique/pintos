@@ -87,7 +87,7 @@ struct thread
     enum thread_status status;          /* Thread state. */
     char name[16];                      /* Name (for debugging purposes). */
     uint8_t *stack;                     /* Saved stack pointer. */
-    int priority;                       /* Priority. */
+    int priority;                       /* Priority. Note: this will change by donation */
     struct list_elem allelem;           /* List element for all threads list. */
 
     /* Shared between thread.c and synch.c. */
@@ -101,6 +101,14 @@ struct thread
 #if 1 /* pj1 */
 	int64_t wake_up_ticks; /* thread wake up at ticks */
 #endif
+
+#if 1 /* pj2 */
+    int saved_priority; /* priority may change because of priority donation, this saves thread's
+                         * origin priority */
+    struct lock *wait_on_lock; /* thread blocked on this lock, used for thread to 
+                                * get the lock holder */
+#endif
+
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
   };
@@ -147,6 +155,10 @@ bool cmp_thread_wake_ticks(struct list_elem *a, struct list_elem *b, void *aux U
 #if 2 /* pj2 */
 bool cmp_thread_prio(struct list_elem *a, struct list_elem *b, void *aux UNUSED);
 void thread_preemption(void);
+
+void thread_resotre_prio(struct thread *t);
+
+void thread_prio_donate();
 #endif
 
 #endif /* threads/thread.h */

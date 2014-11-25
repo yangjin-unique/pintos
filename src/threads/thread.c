@@ -142,24 +142,6 @@ thread_tick (void)
 #endif
 }
 
-#if 1 /* pj2 */
-/* only called by timer interrupt handler, runs in a
- * external interrupt context
- * */
-void
-thread_preemption(void)
-{
-	struct thread *cur = thread_current();
-	struct thread *to_run = NULL;
-	
-	if (!list_empty(&ready_list)) 
-		to_run = list_entry(list_back(&ready_list), struct thread, elem);
-
-	if ( (to_run != NULL && to_run->priority > cur->priority)
-			|| thread_ticks >= TIME_SLICE)
-		intr_yield_on_return();
-}
-#endif
 
 /* Prints thread statistics. */
 void
@@ -245,20 +227,6 @@ thread_block (void)
   schedule ();
 }
 
-#if 1 /* pj2 */
-bool
-cmp_thread_prio(struct list_elem *a, struct list_elem *b, void *aux UNUSED)
-{
-	struct thread *ta = list_entry(a, struct thread, elem);
-	struct thread *tb = list_entry(b, struct thread, elem);
-
-	ASSERT(a != NULL && b != NULL);
-	if (ta->priority < tb->priority)
-		return 1;
-	else
-		return 0;
-}
-#endif
 
 /* Transitions a blocked thread T to the ready-to-run state.
    This is an error if T is not blocked.  (Use thread_yield() to
@@ -275,7 +243,7 @@ thread_unblock (struct thread *t)
 
   ASSERT (is_thread (t));
 
-#if 1 /* pj2 */
+#if 0 /* pj2 */
   struct thread *cur = thread_current();
 #endif
 
@@ -547,6 +515,10 @@ init_thread (struct thread *t, const char *name, int priority)
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
   t->magic = THREAD_MAGIC;
+#if 1 /* pj2 */
+  t->wait_on_lock = NULL;
+  t->saved_priority = priority;
+#endif
 
   old_level = intr_disable ();
   list_push_back (&all_list, &t->allelem);
@@ -669,3 +641,75 @@ allocate_tid (void)
 /* Offset of `stack' member within `struct thread'.
    Used by switch.S, which can't figure it out on its own. */
 uint32_t thread_stack_ofs = offsetof (struct thread, stack);
+
+
+#if 1 /* pj2 */
+bool
+cmp_thread_prio(struct list_elem *a, struct list_elem *b, void *aux UNUSED)
+{
+	struct thread *ta = list_entry(a, struct thread, elem);
+	struct thread *tb = list_entry(b, struct thread, elem);
+
+	ASSERT(a != NULL && b != NULL);
+	if (ta->priority < tb->priority)
+		return 1;
+	else
+		return 0;
+}
+
+
+/* only called by timer interrupt handler, runs in a
+ * external interrupt context
+ * */
+void
+thread_preemption(void)
+{
+	struct thread *cur = thread_current();
+	struct thread *to_run = NULL;
+	
+	if (!list_empty(&ready_list)) 
+		to_run = list_entry(list_back(&ready_list), struct thread, elem);
+
+	if ( (to_run != NULL && to_run->priority > cur->priority)
+			|| thread_ticks >= TIME_SLICE)
+		intr_yield_on_return();
+}
+
+
+void
+thread_resotre_prio(struct thread *t)
+{
+    if (t->priority != t->saved_priority) {
+        thread_set_priority(t->saved_priority);
+    }
+}
+
+
+void
+thread_prio_donate()
+{
+    struct thread *t = thread_current();
+    struct lock *lock = t->wait_on_lock;
+    int nest_level = 0;
+
+    if (!lock || !lock->holder)
+        return;
+
+    /* handle multiple donations and nested donations */
+    while (nest_level < 8) {
+        nest_level++;
+        if (t->priority > lock->holder->priority) {
+            lock->holder->priority = t->priority;
+            list_sort(&lock->semaphore.waiters, (list_less_func *)cmp_thread_prio, NULL);
+        }
+        t = lock->holder;
+        lock = lock->holder->wait_on_lock;
+        if (!lock)
+            break;
+    }
+    list_sort(&ready_list, (list_less_func *)cmp_thread_prio, NULL);
+}
+
+
+#endif
+

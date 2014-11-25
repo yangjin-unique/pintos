@@ -11,8 +11,8 @@ None
 
 
 3. Algorithm
-Here we must understand in what kind of situations that thread re-schedule is needed. 
-The following situations: 
+First we must understand in what kind of situations that thread re-schedule or preemption 
+is needed. The following situations: 
 1) timer interrupt handler. When the time slice of a thread is used up, 
 we need a schedule a new thread here. Note that the interrupe handler calls 
 thread_preemption() (which calls intr_yield_on_return) to schedule a new process.
@@ -28,6 +28,12 @@ thread, we need switch to the new thread now. This case calls thread_yield().
 4) Thread wait on a lock. When a lock is currently held by another thread, the running 
 thread will be put into the wait list of the lock and call thread_block(), thread_block
 sets thread's status to blocked, and schedule.
+
+In order to achieve priority based schedule, the thread with highest priority should be 
+selected to run on each schedule. So it is natural that we use an ordered list, that is 
+ready_list, which is in order of priority, form lower to higher. thread_unblock() and 
+thread_yield() are doing this stuff.
+On each schedule, list_pop_back() is called to pop the thread with highest out.
 
 
 4. Synchronization

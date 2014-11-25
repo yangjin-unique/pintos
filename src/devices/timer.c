@@ -206,8 +206,10 @@ timer_interrupt (struct intr_frame *args UNUSED)
    * whose wake-up time is reach,
    */
   while (!list_empty(&sleep_list)) {
-		if (((struct thread *)list_entry(list_front(&sleep_list), struct thread, elem))->wake_up_ticks <= ticks)
-			thread_unblock((struct thread *)list_entry(list_pop_front(&sleep_list), struct thread, elem));
+		if (((struct thread *)list_entry(list_front(&sleep_list), struct thread, elem))->wake_up_ticks 
+                <= ticks)
+			thread_unblock((struct thread *)list_entry(list_pop_front(&sleep_list), 
+                                struct thread, elem));
 		else
 			break;
   }
