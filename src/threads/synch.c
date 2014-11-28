@@ -206,7 +206,7 @@ lock_acquire (struct lock *lock)
   ASSERT (!lock_held_by_current_thread (lock));
 
 #if 1 /* pj2 */
-  if (lock->holder != NULL)
+  if (lock->holder != NULL) /* lock already help by others */
       thread_current()->wait_on_lock = lock;
 #endif
   sema_down (&lock->semaphore);

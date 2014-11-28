@@ -658,8 +658,7 @@ cmp_thread_prio(struct list_elem *a, struct list_elem *b, void *aux UNUSED)
 }
 
 
-/* only called by timer interrupt handler, runs in a
- * external interrupt context
+/* can also be called in interrupt context 
  * */
 void
 thread_preemption(void)
@@ -672,16 +671,20 @@ thread_preemption(void)
 
 	if ( (to_run != NULL && to_run->priority > cur->priority)
 			|| thread_ticks >= TIME_SLICE)
-		intr_yield_on_return();
+    {
+        if (intr_context()) /* called by interrupt handler */
+		    intr_yield_on_return();
+        else
+            thread_yield();
+    }
 }
-
 
 void
 thread_resotre_prio(struct thread *t)
 {
-    if (t->priority != t->saved_priority) {
-        thread_set_priority(t->saved_priority);
-    }
+    if (t->priority != t->saved_priority) 
+        t->priority = t->saved_priority;
+    thread_preemption(); 
 }
 
 
@@ -698,14 +701,14 @@ thread_prio_donate()
     /* handle multiple donations and nested donations */
     while (nest_level < 8) {
         nest_level++;
+        if (!lock || !lock->holder)
+            break;
         if (t->priority > lock->holder->priority) {
             lock->holder->priority = t->priority;
-            list_sort(&lock->semaphore.waiters, (list_less_func *)cmp_thread_prio, NULL);
+            //list_sort(&lock->semaphore.waiters, (list_less_func *)cmp_thread_prio, NULL);
         }
         t = lock->holder;
         lock = lock->holder->wait_on_lock;
-        if (!lock)
-            break;
     }
     list_sort(&ready_list, (list_less_func *)cmp_thread_prio, NULL);
 }
