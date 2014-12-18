@@ -251,7 +251,8 @@ lock_release (struct lock *lock)
   lock->holder = NULL;
   sema_up (&lock->semaphore);
 #if 1 /* pj2 */
-  thread_resotre_prio(thread_current());
+  thread_remove_donators(lock);
+  thread_resotre_prio();
 #endif
 
 }

@@ -23,6 +23,7 @@ typedef int tid_t;
 #define PRI_MIN 0                       /* Lowest priority. */
 #define PRI_DEFAULT 31                  /* Default priority. */
 #define PRI_MAX 63                      /* Highest priority. */
+#define PRI_DONATE_MAX_NEST_LEVEL   8
 
 /* A kernel thread or user process.
 
@@ -107,6 +108,8 @@ struct thread
                          * origin priority */
     struct lock *wait_on_lock; /* thread blocked on this lock, used for thread to 
                                 * get the lock holder */
+    struct list donators;
+    struct list_elem donate_elem;
 #endif
 
     /* Owned by thread.c. */
@@ -156,9 +159,10 @@ bool cmp_thread_wake_ticks(struct list_elem *a, struct list_elem *b, void *aux U
 bool cmp_thread_prio(struct list_elem *a, struct list_elem *b, void *aux UNUSED);
 void thread_preemption(void);
 
-void thread_resotre_prio(struct thread *t);
+void thread_resotre_prio(void);
 
-void thread_prio_donate();
+void thread_prio_donate(void);
+void thread_remove_donators(struct lock *lock);
 #endif
 
 #endif /* threads/thread.h */
