@@ -144,4 +144,9 @@ int thread_get_load_avg (void);
 #if 1 /* pj1 */
 bool cmp_thread_wake_ticks(struct list_elem *a, struct list_elem *b, void *aux UNUSED);
 #endif
+#if 2 /* pj2 */
+bool cmp_thread_prio(struct list_elem *a, struct list_elem *b, void *aux UNUSED);
+void thread_preemption(void);
+#endif
+
 #endif /* threads/thread.h */

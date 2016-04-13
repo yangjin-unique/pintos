@@ -211,6 +211,7 @@ timer_interrupt (struct intr_frame *args UNUSED)
 		else
 			break;
   }
+  thread_preemption();
 #endif
 }
 

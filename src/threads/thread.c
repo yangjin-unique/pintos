@@ -133,11 +133,31 @@ thread_tick (void)
 #endif
   else
     kernel_ticks++;
-
+  ++thread_ticks;
+#if 0 /* pj2 */
   /* Enforce preemption. */
   if (++thread_ticks >= TIME_SLICE)
     intr_yield_on_return ();
+#endif
 }
+
+#if 1 /* pj2 */
+/* called by timer interrupt handler, runs in a
+ * external interrupt context
+ * */
+void
+thread_preemption(void)
+{
+	struct thread *cur = thread_current();
+	struct thread *to_run = NULL;
+	
+	if (!list_empty(&ready_list)) 
+		to_run = list_entry(list_pop_back(&ready_list), struct thread, elem);
+	if ( (to_run != NULL && to_run->priority > cur->priority)
+			|| thread_ticks >= TIME_SLICE)
+		intr_yield_on_return();
+}
+#endif
 
 /* Prints thread statistics. */
 void
@@ -220,6 +240,21 @@ thread_block (void)
   schedule ();
 }
 
+#if 1 /* pj2 */
+bool
+cmp_thread_prio(struct list_elem *a, struct list_elem *b, void *aux UNUSED)
+{
+	struct thread *ta = list_entry(a, struct thread, elem);
+	struct thread *tb = list_entry(b, struct thread, elem);
+
+	ASSERT(a != NULL && b != NULL);
+	if (ta->priority < tb->priority)
+		return 1;
+	else
+		return 0;
+}
+#endif
+
 /* Transitions a blocked thread T to the ready-to-run state.
    This is an error if T is not blocked.  (Use thread_yield() to
    make the running thread ready.)
@@ -235,10 +270,21 @@ thread_unblock (struct thread *t)
 
   ASSERT (is_thread (t));
 
+#if 1 /* pj2 */
+  struct thread *cur = thread_current();
+#endif
+
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  list_push_back (&ready_list, &t->elem);
+  //list_push_back (&ready_list, &t->elem);
+#if 1 /* pj2 */
+  list_insert_ordered(&ready_list, &t->elem, (list_less_func *)cmp_thread_prio, NULL);
   t->status = THREAD_READY;
+  if (t->priority > cur->priority) {
+	  //todo: need reschedule here...
+      //thread_block();
+  }
+#endif
   intr_set_level (old_level);
 }
 
@@ -305,10 +351,13 @@ thread_yield (void)
   enum intr_level old_level;
   
   ASSERT (!intr_context ());
-
   old_level = intr_disable ();
-  if (cur != idle_thread) 
-    list_push_back (&ready_list, &cur->elem);
+  if (cur != idle_thread) {
+#if 1 /* pj2 */
+	  //list_push_back (&ready_list, &cur->elem);
+	  list_insert_ordered(&ready_list, &cur->elem, (list_less_func *)cmp_thread_prio, NULL);
+#endif
+  }
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
@@ -511,10 +560,13 @@ next_thread_to_run (void)
 {
   if (list_empty (&ready_list))
     return idle_thread;
-  else
-    return list_entry (list_pop_front (&ready_list), struct thread, elem);
+  else {
+#if 1 /* pj2 */
+	  //return list_entry (list_pop_front (&ready_list), struct thread, elem);
+	return list_entry(list_pop_back(&ready_list), struct thread, elem);
+#endif
+  }
 }
-
 /* Completes a thread switch by activating the new thread's page
    tables, and, if the previous thread is dying, destroying it.
 
